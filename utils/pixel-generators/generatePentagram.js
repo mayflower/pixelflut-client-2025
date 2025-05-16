@@ -5,8 +5,9 @@ function generatePentagram() {
     const height = 200;
     const centerX = Math.floor(width / 2);
     const centerY = Math.floor(height / 2);
-    const radius = 80;
+    const radius = 90;
     const redColor = 'ff0000';
+    const thickness = 6;
 
     const pixelData = [];
 
@@ -15,7 +16,7 @@ function generatePentagram() {
     for (let i = 0; i < 5; i++) {
         const angle = (Math.PI / 2) + (i * (2 * Math.PI / 5));
         const x = Math.floor(centerX + radius * Math.cos(angle));
-        const y = Math.floor(centerY - radius * Math.sin(angle));
+        const y = Math.floor(centerY + radius * Math.sin(angle));
         vertices.push([x, y]);
     }
 
@@ -32,7 +33,12 @@ function generatePentagram() {
     for (const [start, end] of edges) {
         const [x1, y1] = vertices[start];
         const [x2, y2] = vertices[end];
-        drawLine(x1, y1, x2, y2, redColor, pixelData, 6);
+        drawLine(x1, y1, x2, y2, redColor, pixelData, thickness);
+    }
+
+    // Draw the outer circle
+    for (let outerCircleThickness = 0; outerCircleThickness < thickness; outerCircleThickness++) {
+        drawCircle(centerX, centerY, radius + outerCircleThickness, redColor, pixelData);
     }
 
     return pixelData;
