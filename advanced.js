@@ -272,6 +272,130 @@ function drawShape(shape, posX, posY, width, height, color) {
   return false;
 }
 
+// NEW FUNCTION: Draw a mathematical pattern
+async function drawMathPattern(formula, posX, posY, width, height, colorScheme = 'rainbow') {
+  console.log(`Drawing mathematical pattern using formula: ${formula}`);
+  console.log(`Starting at (${posX}, ${posY}) with dimensions ${width}x${height}`);
+  
+  // Define some color schemes
+  const colorSchemes = {
+    rainbow: (t) => {
+      // t is normalized to 0-1
+      const r = Math.floor(Math.sin(t * 2 * Math.PI) * 127 + 128);
+      const g = Math.floor(Math.sin(t * 2 * Math.PI + 2 * Math.PI / 3) * 127 + 128);
+      const b = Math.floor(Math.sin(t * 2 * Math.PI + 4 * Math.PI / 3) * 127 + 128);
+      return { r, g, b };
+    },
+    heatmap: (t) => {
+      // Heat map (blue to red)
+      const r = Math.floor(Math.min(255, t * 510));
+      const g = Math.floor(Math.min(255, Math.max(0, t * 510 - 255)));
+      const b = Math.floor(Math.min(255, Math.max(0, 255 - t * 510)));
+      return { r, g, b };
+    },
+    grayscale: (t) => {
+      // Grayscale
+      const v = Math.floor(t * 255);
+      return { r: v, g: v, b: v };
+    }
+  };
+  
+  // Choose the color scheme function
+  const colorFunc = colorSchemes[colorScheme] || colorSchemes.rainbow;
+  
+  // Create function from formula string (be cautious with this in production!)
+  // This uses a Function constructor which executes the provided string as code
+  // Only use this with trusted input!
+  let mathFunc;
+  try {
+    mathFunc = new Function('x', 'y', 'width', 'height', 'return ' + formula);
+  } catch (error) {
+    console.error('Error in formula syntax:', error);
+    return false;
+  }
+  
+  // Generate all points first to normalize the values
+  const values = [];
+  let minVal = Infinity;
+  let maxVal = -Infinity;
+  
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      try {
+        // Normalize x and y to be in range [-1, 1]
+        const normX = (x / width) * 2 - 1;
+        const normY = (y / height) * 2 - 1;
+        
+        const value = mathFunc(normX, normY, width, height);
+        
+        if (isFinite(value)) {
+          minVal = Math.min(minVal, value);
+          maxVal = Math.max(maxVal, value);
+          values.push({ x, y, value });
+        }
+      } catch (error) {
+        console.log(`Error calculating formula at ${x},${y}: ${error.message}`);
+      }
+    }
+  }
+  
+  // Normalize values to [0,1] for coloring
+  const range = maxVal - minVal || 1; // Avoid division by zero
+  
+  // Sort values (optional - this makes the drawing effect more interesting)
+  values.sort((a, b) => a.value - b.value);
+  
+  // Draw pattern
+  const batchSize = 100; // Send commands in batches to avoid buffer overflow
+  let commands = [];
+  let pixelCount = 0;
+  const totalPixels = values.length;
+  const startTime = Date.now();
+  
+  console.log(`Starting to draw pattern with ${totalPixels} pixels...`);
+  
+  for (const { x, y, value } of values) {
+    // Normalize value to 0-1
+    const normValue = (value - minVal) / range;
+    
+    // Get color from color function
+    const { r, g, b } = colorFunc(normValue);
+    
+    // Format hex color
+    const hexColor = rgbToHex(r, g, b);
+    
+    // Add command
+    const command = `PX ${posX + x} ${posY + y} ${hexColor}\n`;
+    commands.push(command);
+    
+    // Send batch if it's full
+    if (commands.length >= batchSize) {
+      client.write(commands.join(''));
+      commands = [];
+      
+      // Show progress periodically
+      pixelCount += batchSize;
+      if (pixelCount % 1000 === 0) {
+        const progress = Math.floor((pixelCount / totalPixels) * 100);
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        const pixelsPerSecond = Math.floor(pixelCount / elapsedSeconds);
+        console.log(`Progress: ${progress}% (${pixelCount}/${totalPixels} pixels, ${pixelsPerSecond} pixels/sec)`);
+        
+        // Small delay to allow server to process
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+    }
+  }
+  
+  // Send any remaining commands
+  if (commands.length > 0) {
+    client.write(commands.join(''));
+  }
+  
+  console.log(`Completed drawing pattern with ${totalPixels} pixels in ${(Date.now() - startTime) / 1000} seconds`);
+  return true;
+}
+
 // Convert RGB values to hex string
 function rgbToHex(r, g, b) {
   return ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
@@ -285,7 +409,8 @@ function showMenu() {
   console.log('3. Draw text');
   console.log('4. Draw a shape');
   console.log('5. Clear an area');
-  console.log('6. Reconnect to server');
+  console.log('6. Draw mathematical pattern');
+  console.log('7. Reconnect to server');
   console.log('0. Exit');
   
   rl.question('Select an option: ', async (option) => {
@@ -360,7 +485,34 @@ function showMenu() {
         });
         break;
         
-      case '6': // Reconnect
+      case '6': // Draw mathematical pattern
+        console.log('\n--- Mathematical Pattern Generator ---');
+        console.log('Enter a JavaScript math formula using variables x and y (both in range [-1,1]):');
+        console.log('Examples:');
+        console.log('- Math.sin(x*10) * Math.cos(y*10)');
+        console.log('- Math.sqrt(x*x + y*y)');
+        console.log('- Math.sin(Math.sqrt(x*x + y*y) * 10)');
+        console.log('- Math.sin(x*x*10 + y*y*10)');
+        console.log('- Math.sin(Math.atan2(y, x) * 12) * Math.cos(Math.sqrt(x*x + y*y) * 8)')
+        
+        rl.question('Formula: ', (formula) => {
+          rl.question('Position X: ', (posX) => {
+            rl.question('Position Y: ', (posY) => {
+              rl.question('Width: ', (width) => {
+                rl.question('Height: ', (height) => {
+                  rl.question('Color scheme (rainbow/heatmap/grayscale): ', (colorScheme) => {
+                    drawMathPattern(formula, parseInt(posX), parseInt(posY), 
+                                   parseInt(width), parseInt(height), colorScheme)
+                      .then(() => showMenu());
+                  });
+                });
+              });
+            });
+          });
+        });
+        break;
+        
+      case '7': // Reconnect
         client.destroy();
         connectToServer()
           .then(() => showMenu())
