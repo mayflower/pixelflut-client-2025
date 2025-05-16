@@ -1,0 +1,13 @@
+{
+  "name": "pixelflut-client",
+  "version": "1.0.0",
+  "description": "Client to send images to a Pixelflut server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "jimp": "^0.22.10",
+    "net": "^1.0.2"
+  }
+}

@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  pixelflut-client:
+    build: .
+    container_name: pixelflut-client
+    environment:
+      - PIXELFLUT_SERVER=10.93.230.17
+      - PIXELFLUT_PORT=1337
+    volumes:
+      # Montiert das aktuelle Verzeichnis in /app/images, um leicht Bilder hochzuladen
+      - ./:/app/images
+    # Interaktiver Modus für die Terminal-Eingabe
+    stdin_open: true
+    tty: true
