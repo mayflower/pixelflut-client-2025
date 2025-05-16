@@ -4,10 +4,14 @@
   "description": "Client to send images to a Pixelflut server",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "jest"
   },
   "dependencies": {
     "jimp": "^0.22.10",
     "net": "^1.0.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }

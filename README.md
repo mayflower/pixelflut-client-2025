@@ -23,6 +23,32 @@ In der `index.js` kannst du folgende Einstellungen anpassen:
 - `IMAGE_PATH`: Der Pfad zum Bild, das gesendet werden soll
 - `POSITION_X` und `POSITION_Y`: Die Position, an der das Bild auf der Leinwand platziert werden soll
 
+## Tests
+
+Das Projekt enthält umfangreiche Tests für alle Komponenten. Die Tests sind in einem Verzeichnis organisiert, das die Projektstruktur widerspiegelt.
+
+### Tests ausführen
+
+Um alle Tests auszuführen:
+
+```bash
+npm test
+```
+
+Um einen bestimmten Test auszuführen:
+
+```bash
+npm test -- tests/utils/pixel-generators/drawCircle.test.js
+```
+
+Um Tests mit einem Coverage-Bericht auszuführen:
+
+```bash
+npm test -- --coverage
+```
+
+Weitere Informationen zu den Tests findest du in der [Tests README](tests/README.md).
+
 ## Pixelflut-Protokoll
 
 Pixelflut verwendet ein einfaches textbasiertes Protokoll:
